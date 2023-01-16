@@ -17,7 +17,7 @@ class Bet:
             self.balance = 10 * self.amount
             self.comment = (f"You got a jackpot on {self.prediction}")
 
-        elif (self.prediction == "Odd" and number in [1, 3, 7, 9]) or (self.prediction == "Even" and number in [2, 4, 6, 8]):
+        elif (self.prediction == "Odd" and number % 2 == 1) or (self.prediction == "Even" and number % 2 == 0):
             # both numbers are odd: add 2x bet_amount to balance
             self.balance = 2 * self.amount
             self.comment = (f"You got a double-return on {self.prediction}")
@@ -28,8 +28,9 @@ class Bet:
             self.comment = f"Bet just quadrupled for {self.prediction}"
         return self.balance, self.comment
 
+
 class BetPage(QtWidgets.QWidget):
-    def __init__(self, parent = None, core = None):
+    def __init__(self, parent=None, core=None):
         super().__init__(parent)
         self.parent = parent
         self.denomination = 10
@@ -39,77 +40,102 @@ class BetPage(QtWidgets.QWidget):
         self.core = core
 
     def initUI(self):
-        self.bet_amount_label = QtWidgets.QLabel("Enter the bet amount:")
+        # create widgets
         self.prediction_head_label = QtWidgets.QLabel()
-        self.prediction_head_label.setStyleSheet("color: #FF0000;")
         self.back_button = QtWidgets.QPushButton("Back")
         self.confirm_button = QtWidgets.QPushButton("Confirm")
+        self.bet_amount_input = QtWidgets.QLineEdit("10")
+        self.bet_amount_input.setAlignment(Qt.AlignHCenter)
+        self.bet_amount_increment = QtWidgets.QPushButton("+")
+        self.bet_amount_decrement = QtWidgets.QPushButton("-")
 
+        # create layout for denomination buttons
         self.denomination_buttons = []
+        denominations_layout = QtWidgets.QGridLayout()
         for i in range(3):
             button = QtWidgets.QPushButton(str(10**(i+1)))
             button.setProperty("denominationButton", True)
-            button.setCheckable(True)  # make the button checkable
+            button.setCheckable(True)
             self.denomination_buttons.append(button)
-
+            denominations_layout.addWidget(button, 0, i)
         self.denomination_buttons[0].setChecked(True)
 
-        self.multiplier_decrement = QtWidgets.QPushButton("-")
-        self.multiplier_increment = QtWidgets.QPushButton("+")
-        self.multiplier_input = QtWidgets.QLineEdit("10")
-        self.multiplier_input.setAlignment(Qt.AlignHCenter)
-
-        denominations_layout = QtWidgets.QGridLayout()
-        for i, button in enumerate(self.denomination_buttons):
-            denominations_layout.addWidget(button, 0, i)
-
-        multiplier_layout = QtWidgets.QGridLayout()
-        multiplier_layout.addWidget(self.bet_amount_label, 0, 0)
-        multiplier_layout.addWidget(self.multiplier_decrement, 0, 1)
-        multiplier_layout.addWidget(self.multiplier_input, 0, 2)
-        multiplier_layout.addWidget(self.multiplier_increment, 0, 3)
+        # create layout for bet amount input and buttons
+        bet_amount_layout = QtWidgets.QGridLayout()
+        bet_amount_layout.addWidget(self.bet_amount_decrement, 0, 0)
+        bet_amount_layout.addWidget(self.bet_amount_input, 0, 2)
+        bet_amount_layout.addWidget(self.bet_amount_increment, 0, 3)
 
         buttons_layout = QtWidgets.QGridLayout()
         buttons_layout.addWidget(self.back_button, 0, 0)
         buttons_layout.addWidget(self.confirm_button, 0, 1)
 
-        self.bet_amount_page = QtWidgets.QWidget()
+        # create main layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.prediction_head_label)
-        layout.addLayout(multiplier_layout)
+        layout.addLayout(bet_amount_layout)
         layout.addLayout(denominations_layout)
         layout.addLayout(buttons_layout)
 
+        # set layout
         self.setLayout(layout)
 
+        # set style sheet
+        style_sheet = """
+            QLabel {
+                color: #1DB954;
+                font-size: 14pt;
+                font-weight: bold;
+            }
+            QLineEdit {
+                border: 2px solid #1DB954;
+                font-size: 14pt;
+                color: #1DB954;
+            }
+            QPushButton[denominationButton="true"] {
+                background-color: #FFFFFF;
+                color: #1DB954;
+                font-size: 14pt;
+                border: 2px solid #1DB954;
+            }
+            QPushButton {
+                background-color: #FFD966;
+                color: #1DB954;
+                font-size: 14pt;
+                border: 2px solid #1DB954;
+            }
+        """
+        self.setStyleSheet(style_sheet)
+
+        # connect signals
         self.back_button.clicked.connect(self.back)
         self.confirm_button.clicked.connect(self.place_bet)
-        self.multiplier_increment.clicked.connect(self.increase_multiplier)
-        self.multiplier_decrement.clicked.connect(self.decrease_multiplier)
+        self.bet_amount_increment.clicked.connect(self.increase_bet_amount)
+        self.bet_amount_decrement.clicked.connect(self.decrease_bet_amount)
         for button in self.denomination_buttons:
             button.clicked.connect(self.set_denomination)
 
     def set_denomination(self):
         button = self.sender()
         self.denomination = int(button.text())
-        self.multiplier_input.setText(button.text())
+        self.bet_amount_input.setText(button.text())
         for button in self.denomination_buttons:
             button.setChecked(False)
 
-    def increase_multiplier(self):
-        current_multiplier = int(self.multiplier_input.text())
+    def increase_bet_amount(self):
+        current_multiplier = int(self.bet_amount_input.text())
         new_multiplier = current_multiplier + self.denomination
-        self.multiplier_input.setText(str(new_multiplier))
+        self.bet_amount_input.setText(str(new_multiplier))
 
-    def decrease_multiplier(self):
-        current_multiplier = int(self.multiplier_input.text())
+    def decrease_bet_amount(self):
+        current_multiplier = int(self.bet_amount_input.text())
         new_multiplier = current_multiplier - self.denomination
         if new_multiplier < 0:
             new_multiplier = 0
-        self.multiplier_input.setText(str(new_multiplier))
+        self.bet_amount_input.setText(str(new_multiplier))
 
     def place_bet(self):
-        self.bet_amount = int(self.multiplier_input.text())
+        self.bet_amount = int(self.bet_amount_input.text())
 
         if self.bet_amount > self.core.balance:  # check if the user has enough balance
             self.core.log_screen.addItem("Insufficient balance!")
@@ -126,8 +152,9 @@ class BetPage(QtWidgets.QWidget):
         # set the current index to the index of the prediction page
         self.parent.setCurrentIndex(0)
 
+
 class PredictionPage(QtWidgets.QWidget):
-    def __init__(self, parent=None, bet_page=None, core = None):
+    def __init__(self, parent=None, bet_page=None, core=None):
         super().__init__(parent)
         self.parent = parent
         self.bet_page = bet_page
@@ -139,7 +166,7 @@ class PredictionPage(QtWidgets.QWidget):
         self.play_button = QtWidgets.QPushButton("Play")
 
         self.oel_buttons = [QtWidgets.QPushButton("Odd"),
-                            QtWidgets.QPushButton("Even"), 
+                            QtWidgets.QPushButton("Even"),
                             QtWidgets.QPushButton("Lucky")]
 
         for button in self.oel_buttons:
@@ -153,7 +180,6 @@ class PredictionPage(QtWidgets.QWidget):
             button.setProperty("numberButton", True)
             button.setCheckable(True)  # make the button checkable
             self.buttons.append(button)
-
 
         # create prediction page
         button_layout = QtWidgets.QGridLayout()
@@ -189,8 +215,9 @@ class PredictionPage(QtWidgets.QWidget):
         for button in self.buttons + self.oel_buttons:
             button.setChecked(False)
 
+
 class LogScreen(QtWidgets.QListView):
-    def __init__(self, parent=None, core = None):
+    def __init__(self, parent=None, core=None):
         super().__init__(parent)
         self.core = core
         font = QtGui.QFont()
@@ -209,7 +236,7 @@ class LogScreen(QtWidgets.QListView):
             "background-color: #333333;color: #00FF80;border-radius: 10%;padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 20px;font-family: Courier New;font-size:16px")
 
         # Initialize the list model
-        self.model =QStringListModel(self)
+        self.model = QStringListModel(self)
         # Set the list model for the list view
         self.setModel(self.model)
 
@@ -225,9 +252,11 @@ class LogScreen(QtWidgets.QListView):
     def removeItem(self, index):
         # Remove the item at the given index from the list model
         self.model.removeRow(index.row())
-        self.core.balance += self.core.bets[len(self.core.bets) - 1 - index.row()].amount
+        self.core.balance += self.core.bets[len(
+            self.core.bets) - 1 - index.row()].amount
         self.core.bets.pop(len(self.core.bets) - 1 - index.row())
         self.core.balance_label.setText(f"Balance : {self.core.balance}")
+
 
 class RandomNumberGame(QtWidgets.QWidget):
     def __init__(self):
@@ -242,18 +271,21 @@ class RandomNumberGame(QtWidgets.QWidget):
 
         self.balance_label = QtWidgets.QLabel(f"Balance : {self.balance}")
         self.balance_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.balance_label.setStyleSheet("font-size:22px;background-color:#000000;color:#ffffff;border-radius:10%")
+        self.balance_label.setStyleSheet(
+            "font-size:22px;background-color:#000000;color:#ffffff;border-radius:10%")
         self.balance_label.setFixedWidth(250)
 
         self.number_label = QtWidgets.QLabel("-")
-        self.number_label.setStyleSheet("background-color: orange;border-radius:10%;font-size:24px;font-weight: bold")
+        self.number_label.setStyleSheet(
+            "background-color: orange;border-radius:10%;font-size:24px;font-weight: bold")
         self.number_label.setFixedSize(50, 50)
         self.number_label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
 
         self.stacked_widget = QtWidgets.QStackedWidget()
         # add pages to stacked widget
         self.bet_amount_page = BetPage(self.stacked_widget, self)
-        self.prediction_page = PredictionPage(self.stacked_widget, self.bet_amount_page, self)
+        self.prediction_page = PredictionPage(
+            self.stacked_widget, self.bet_amount_page, self)
         self.stacked_widget.addWidget(self.prediction_page)
         self.stacked_widget.addWidget(self.bet_amount_page)
 
@@ -328,8 +360,6 @@ class RandomNumberGame(QtWidgets.QWidget):
 
                 """)
 
-
-
     def update_prediction(self):
         # reset prediction
         self.prediction = None
@@ -340,7 +370,7 @@ class RandomNumberGame(QtWidgets.QWidget):
         else:
             self.prediction = self.latest_button.text()
 
-        self.multiplier_input.setText("10")
+        self.bet_amount_input.setText("10")
         self.prediction_head_label.setText(str(self.prediction))
         self.stacked_widget.setCurrentIndex(1)
 
@@ -372,3 +402,5 @@ class RandomNumberGame(QtWidgets.QWidget):
         if self.balance == 0:
             self.log_screen.addItem("Game Over!")
 
+
+#TODO: design as midjourney images
