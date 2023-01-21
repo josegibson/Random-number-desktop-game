@@ -15,3 +15,5 @@ class RandomNumberGame:
         prize_matrix = [round(self.win_matrix[i] * bets_matrix[i] * 0.97, 2) for i in range(13)]
         return prize_matrix
 
+
+
