@@ -21,13 +21,13 @@ class RandomNumberGame:
 
     def play_round(self, bets_matrix):
         win_matrix = self.set_win_matrix(random.randint(0, 9))
-        prize_matrix = [round(win_matrix[i] * bets_matrix[i] * 0.97, 2) for i in range(13)]
+        prize_matrix = [round(win_matrix[i] * bets_matrix[i] * 0.97 - bets_matrix[i], 2) for i in range(13)]
         return prize_matrix
 
     def step(self, action, round):
         bets_matrix = action
         reward = self.play_round(bets_matrix)
-        self.balance += sum(reward) - sum(bets_matrix)
+        self.balance += sum(reward)
         self.done = self.balance <= 0
         next_state =[round + 1, self.balance]
         if len(self.agent.memory) > self.batch_size: 
@@ -45,16 +45,16 @@ class RandomNumberGame:
             state = self.reset()
             state = np.reshape(state, [1, self.state_size])
             time = state[0, 0]
-            while not self.done:
-                
+            max_b = self.balance
+            while (not self.done) and time < 1000:
                 action = self.agent.act(state)
                 next_state, reward, done = self.step(action, time)
                 next_state = np.reshape(next_state, [1, self.state_size])
                 self.agent.remember(state, action, reward, next_state, done)
                 state = next_state
+                max_b = self.balance if self.balance > max_b else max_b
                 if len(self.agent.memory) > self.batch_size:
-                    print(f"Dreaming at round {time}")
                     self.agent.replay(self.batch_size)
                 time += 1
-            print("episode: {}/{}, score: {}, e: {:.2}".format(e, episodes, time, self.agent.epsilon))
+            print("episode: {}/{}, rounds: {}, e: {}, max_b: {}".format(e, episodes, time, self.agent.epsilon, max_b))
 

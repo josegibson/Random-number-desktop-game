@@ -19,8 +19,8 @@ class DQNAgent:
         model = tf.keras.Sequential()
         model.add(tf.keras.layers.Dense(24, input_dim=self.state_size, activation='relu'))
         model.add(tf.keras.layers.Dense(24, activation='relu'))
-        model.add(tf.keras.layers.Dense(self.action_size, activation='linear'))
-        model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(lr=self.learning_rate))
+        model.add(tf.keras.layers.Dense(self.action_size, activation='relu'))
+        model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(lr=self.learning_rate), metrics=['mse'])
         return model
 
     def remember(self, state, action, reward, next_state, done):
@@ -34,16 +34,14 @@ class DQNAgent:
         else:
             action = self.model.predict(state)
             action = [round(a, 2) for a in action[0]]
-            action = [max(a, 0) for a in action]
 
         return action
 
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
-            state = np.array(state).reshape(1,self.state_size)
-            reward = np.array(reward).reshape(1, self.action_size)
-            self.model.fit(state, reward, epochs=1, verbose=0)
+        states = np.array([i[0] for i in minibatch]).reshape(batch_size, self.state_size)
+        rewards = np.array([i[2] for i in minibatch]).reshape(batch_size, self.action_size)
+        self.model.fit(states, rewards, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
